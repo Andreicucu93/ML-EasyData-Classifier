@@ -2,7 +2,8 @@
 
 
 
-A simple \*\*machine learning + GUI\*\* tool for automatically predicting \*\*1 Field\*\* based on a Excel - database file.  
+A simple \*\*machine learning + GUI\*\* tool for automatically predicting \*\*1 Field\*\* based on a Excel - database file that contains a column
+ with information similar to input, and a second to reference the predictions..  
 
 Basic steps:
 Load the excel containing 2 columns (Feature column, Target column)
