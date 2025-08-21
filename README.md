@@ -2,7 +2,12 @@
 
 
 
-A simple \*\*machine learning + GUI\*\* tool for automatically predicting \*\*Category\*\* and \*\*Subcategory\*\* from product names in an Excel file.  
+A simple \*\*machine learning + GUI\*\* tool for automatically predicting \*\*1 Field\*\* based on a Excel - database file.  
+
+Basic steps:
+Load the excel containing 2 columns (Feature column, Target column)
+Fill in the input area with Feature - column type information
+Hit Start and the model will predict what Target - column type information your input will have.
 
 Built with Python, scikit-learn, pandas, and CustomTkinter.  
 
@@ -10,9 +15,9 @@ Built with Python, scikit-learn, pandas, and CustomTkinter.
 
 \## Features
 
-\- Load an Excel dataset with product type info
+\- Load an Excel dataset with 2 columns
 
-\- Currently trains model on predefined attributes (Category + Subcategory)
+\- Currently trains model by 1 attribute
 
 \- Predict new entries
 
