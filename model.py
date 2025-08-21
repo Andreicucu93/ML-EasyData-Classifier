@@ -13,8 +13,7 @@ def run_model_1target(path, feature_column, target_column_1, new_products: list)
     df = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME or 0)
     xls = pd.ExcelFile(DATA_PATH)
     sheet = SHEET_NAME or xls.sheet_names[0]
-    # will rename to variable
-    #    (We train on rows where the target exists; later we can predict for any new list)
+
     df = df.copy()
     df[feature_column] = df[feature_column].astype(str)
 
@@ -24,8 +23,8 @@ def run_model_1target(path, feature_column, target_column_1, new_products: list)
 
     #    Split the known labeled data into train/test to quickly check model quality.
     Xc_train, Xc_test, yc_train, yc_test = train_test_split(
-        tg1_df[feature_column],                     # input text (product name)
-        tg1_df[target_column_1].astype(str),     # target label (Category)
+        tg1_df[feature_column],                     # input text (Feature)
+        tg1_df[target_column_1].astype(str),     # target label (Target)
         test_size=0.2,                      # 20% of data held out for testing
         random_state=42,                    # makes results reproducible
         stratify=tg1_df[target_column_1].astype(str)  # keep class balance in split
@@ -68,7 +67,7 @@ def run_model_1target(path, feature_column, target_column_1, new_products: list)
 
     # 8) Show predictions as a simple table
     output = pd.DataFrame(results)
-    output.to_excel('output_data.xlsx')
+    return output
 
 def run_model_2target(path, feature_column, target_column_1, target_column_2, new_products):
     DATA_PATH = path

@@ -1,4 +1,4 @@
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 import customtkinter as ctk
 from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkTextbox, CTkOptionMenu
 import os
@@ -57,22 +57,33 @@ def start_model_action():
     if feat.startswith('--') or targ.startswith('--'):
         print('Please select the dropdown attributes.')
 
+
         return
-    ml.run_model_1target(selected_path['file'], 
+    predict_output = utils.export_data(dataset=ml.run_model_1target(selected_path['file'], 
     feature_column=feat, 
     target_column_1=targ,
-    new_products=get_input())
+    new_products=get_input()))
 
+    for _, row in predict_output.iterrows():
+        tree.insert('', 'end', values=row.tolist())
+
+def clear_treeview():
+    for item in tree.get_children():
+        tree.delete(item)    
+    print('Cleared treeview.')
 
 def start_widgets():   ## POPULATE dropdown for Feature and Target attributes
-    global textbox, feature_attr_dropdown, target_attr_dropdown
-    buttons_frame = CTkFrame(root)  #For buttons
+    global textbox, feature_attr_dropdown, target_attr_dropdown, tree
+    buttons_frame = CTkFrame(root)          #For buttons - control
     buttons_frame.grid(row=1, column=1, pady=10, padx=10)
 
-    textbox_frame = CTkFrame(root) #For textbox
+    textbox_frame = CTkFrame(root)          #For textbox - input
     textbox_frame.grid(row=1, column=0, pady=10, padx=10)
 
-    options_frame = CTkFrame(root)
+    treeview_frame = CTkFrame(root)         #For treeview - output
+    treeview_frame.grid(row=1, column=2, pady=10, padx=10)
+
+    options_frame = CTkFrame(root)          #For dropdowns - attributes
     options_frame.grid(row=2, column=0, pady=10, padx=10)
 
     load_button = CTkButton(buttons_frame, text='Load dataset', command=choose_and_load)
@@ -92,6 +103,20 @@ def start_widgets():   ## POPULATE dropdown for Feature and Target attributes
 
     target_attr_dropdown = CTkOptionMenu(options_frame, values=[' -- load a file first --'], width=200)
     target_attr_dropdown.grid(row=0, column=1, padx=15, pady=10)
+
+    treeview_clear_button = CTkButton(treeview_frame, text='Clear', command=clear_treeview, fg_color='firebrick3')
+    treeview_clear_button.grid(row=1, column=0)
+
+    tree = ttk.Treeview(treeview_frame)
+    tree['columns'] = ('Data', 'Prediction')
+    tree.column('#0', width=0, stretch=False)
+    tree.column('Data', anchor='w', width=200)
+    tree.column('Prediction', anchor='center', width=300)
+    #Reminder: heading controls title/anchor
+    tree.heading('#0', text='', anchor='w')
+    tree.heading('Data', text='Data in', anchor='center')
+    tree.heading('Prediction', text='Prediction out', anchor='center')
+    tree.grid(row=0, column=0)
 
 start_widgets()
 

@@ -11,7 +11,8 @@ Hit Start and the model will predict what Target - column type information your 
 
 Built with Python, scikit-learn, pandas, and CustomTkinter.  
 
-
+##Progress
+Added a treeview to display prediction
 
 \## Features
 
