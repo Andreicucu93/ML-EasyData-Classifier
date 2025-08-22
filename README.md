@@ -4,8 +4,6 @@ A simple **machine learning + GUI** tool for predicting **1 Field** based on a E
 
 Basic steps: Load the excel containing 2 columns (Feature column, Target column) Fill in the input area with Feature - column type information Hit Start and the model will predict what Target - column type information your input will have.
 
-Built with Python, scikit-learn, pandas, and CustomTkinter.
-
 ## Update:
 Checks for dropdowns and label indicators
 
