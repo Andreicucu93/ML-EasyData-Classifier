@@ -1,14 +1,21 @@
 from tkinter import filedialog, ttk
 import customtkinter as ctk
 from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkTextbox, CTkOptionMenu
+from CTkMessagebox import CTkMessagebox
 import os
 import numpy as np
 import utils
 import model as ml
+import threading
+
+## 8/22/25
+#Check for dropdown
+#Labels for textbox, dropdowns
+#Error handling for scikit count < 2 class
 
 root = CTk()
 root.title("ML Data Sorter - predicts new data information")
-root.geometry("700x600") #w h
+root.geometry("1250x600") #w h
 
 selected_path = {'file': None}
 
@@ -37,14 +44,34 @@ def choose_and_load():   ## SELECT feature_column & target_column FROM LOADED df
     else:
         print('No file selected')
         return None
-    
+
+def choose_and_load_threaded():
+    def worker():
+        df = None
+        root.after(0, lambda: load_button.configure(text='Loading ⌛..', state='disabled'))
+        try:
+            df = choose_and_load()
+            if df is not None:
+                print(f'File loaded with {len(df)} rows.')
+                root.after(0, lambda: load_button.configure(text='Loaded ✅', state='normal'))
+            else:
+                root.after(0, lambda: load_button.configure(text='Load dataset', state='normal'))
+        except Exception as e:
+            root.after(0, lambda: (CTkMessagebox(title='Error', message=str(e), icon='cancel'),
+                                   load_button.configure(text='Dataset not loaded', state='normal'))) 
+    threading.Thread(target=worker, daemon=True).start()
+
+
 def get_input():
     raw = textbox.get("1.0", "end-1c")
     items = [s.strip() for s in raw.splitlines() if s.strip()]
+    if not items:
+        CTkMessagebox(title='Warning', message='Please input at least one item.', icon='warning')
+        print("missing textbox input")
+        return None
     col1 = feature_attr_dropdown.get()
     print(col1)
     return items
-
 
 
 def start_model_action():
@@ -55,59 +82,90 @@ def start_model_action():
     feat = feature_attr_dropdown.get()
     targ = target_attr_dropdown.get()
     if feat.startswith('--') or targ.startswith('--'):
-        print('Please select the dropdown attributes.')
-
-
+        on_dropdown_change()
         return
-    predict_output = utils.export_data(dataset=ml.run_model_1target(selected_path['file'], 
-    feature_column=feat, 
-    target_column_1=targ,
-    new_products=get_input()))
+    items = get_input()
+    if not items:
+        return
+    
+    try:
+        predict_output = utils.export_data(dataset=ml.run_model_1target(selected_path['file'], 
+        feature_column=feat, 
+        target_column_1=targ,
+        new_products=get_input()))
 
-    for _, row in predict_output.iterrows():
-        tree.insert('', 'end', values=row.tolist())
+        for _, row in predict_output.iterrows():
+            tree.insert('', 'end', values=row.tolist())
+    except Exception as e:
+        msg = class_error(e)
+        CTkMessagebox(title='Error', message=msg, icon='cancel')
+
 
 def clear_treeview():
     for item in tree.get_children():
         tree.delete(item)    
     print('Cleared treeview.')
 
+
+#Warnings
+def _is_selected(val:str) -> bool:          #Checks if the dropdown holds a real selection and not placeholder
+    return bool(val) and not val.startswith('--')
+
+def on_dropdown_change(_value=None):        #Checks and reminds the user to make selections from dropdowns
+    if _is_selected(feature_attr_dropdown.get()) and _is_selected(target_attr_dropdown.get()):
+        dropdown_label.configure(text='')
+    else:
+        dropdown_label.configure(text='Please make the dropdown selections.', text_color='red')
+
+def class_error(err: Exception) -> str:
+    s = str(err)
+    if "least populated class" in s:
+        return ("Your selected target column has a class with only ONE row.\n"
+        "To train, each class needs at least 2 examples.\n"
+        "Fix: add more rows for that class, or remove it from the dataset")
+    return s
+
+
 def start_widgets():   ## POPULATE dropdown for Feature and Target attributes
-    global textbox, feature_attr_dropdown, target_attr_dropdown, tree
+    global textbox, feature_attr_dropdown, target_attr_dropdown, tree, dropdown_label, load_button
     buttons_frame = CTkFrame(root)          #For buttons - control
-    buttons_frame.grid(row=1, column=1, pady=10, padx=10)
+    buttons_frame.grid(row=1, column=2, pady=10, padx=10)
 
     textbox_frame = CTkFrame(root)          #For textbox - input
-    textbox_frame.grid(row=1, column=0, pady=10, padx=10)
+    textbox_frame.grid(row=1, column=0, padx=10)
 
     treeview_frame = CTkFrame(root)         #For treeview - output
-    treeview_frame.grid(row=1, column=2, pady=10, padx=10)
+    treeview_frame.grid(row=1, column=1, pady=(55, 10), padx=10)
 
     options_frame = CTkFrame(root)          #For dropdowns - attributes
-    options_frame.grid(row=2, column=0, pady=10, padx=10)
+    options_frame.grid(row=2, column=0, padx=10)
 
-    load_button = CTkButton(buttons_frame, text='Load dataset', command=choose_and_load)
+    load_button = CTkButton(buttons_frame, text='Load dataset', command=choose_and_load_threaded)
     load_button.grid(row=1, column=1, pady=10, padx=10)
 
     start_model = CTkButton(buttons_frame, text='Start', command=start_model_action)
     start_model.grid(row=2, column=1, pady=10, padx=10)
 
-    test_button = CTkButton(buttons_frame, text='test', command=get_input)
-    test_button.grid(row=3, column=1, pady=10, padx=10)
+    clear_button = CTkButton(buttons_frame, text='Clear output', command=clear_treeview, fg_color='firebrick3')
+    clear_button.grid(row=3, column=1, pady=(10, 0))
 
-    textbox = ctk.CTkTextbox(textbox_frame, width=350, height=450)
-    textbox.grid(row=0, column=0, pady=10, padx=10)
+    textbox_label = CTkLabel(textbox_frame, text='Enter items (one per line):')
+    textbox_label.grid(row=0, column=0)
 
-    feature_attr_dropdown = CTkOptionMenu(options_frame, values=[' -- load a file first --'], width=200)
-    feature_attr_dropdown.grid(row=0, column=0, padx=15, pady=10)
+    textbox = CTkTextbox(textbox_frame, width=350, height=380)
+    textbox.grid(row=1, column=0, pady=10, padx=10)
 
-    target_attr_dropdown = CTkOptionMenu(options_frame, values=[' -- load a file first --'], width=200)
-    target_attr_dropdown.grid(row=0, column=1, padx=15, pady=10)
+    dropdown_label = CTkLabel(options_frame, text= '')
+    dropdown_label.grid(row=1, column=0, columnspan=2)
 
-    treeview_clear_button = CTkButton(treeview_frame, text='Clear', command=clear_treeview, fg_color='firebrick3')
-    treeview_clear_button.grid(row=1, column=0)
+    feature_attr_dropdown = CTkOptionMenu(options_frame, values=[' -- load a file first --'], width=200, command=on_dropdown_change)
+    feature_attr_dropdown.grid(row=0, column=0, padx=15)
 
-    tree = ttk.Treeview(treeview_frame)
+    target_attr_dropdown = CTkOptionMenu(options_frame, values=[' -- load a file first --'], width=200, command=on_dropdown_change)
+    target_attr_dropdown.grid(row=0, column=1, padx=15)
+
+
+    tree = ttk.Treeview(treeview_frame, height=20)
     tree['columns'] = ('Data', 'Prediction')
     tree.column('#0', width=0, stretch=False)
     tree.column('Data', anchor='w', width=200)

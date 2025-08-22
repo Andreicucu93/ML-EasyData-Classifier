@@ -61,8 +61,8 @@ def run_model_1target(path, feature_column, target_column_1, new_products: list)
     for name in new_products:
         pred_tg1 = target_1.predict([name])[0]  # Category prediction (string)
         results.append({
-            "Name": name,
-            "PredictedCategory": pred_tg1
+            "Item": name,
+            "Target": pred_tg1
         })
 
     # 8) Show predictions as a simple table
