@@ -14,53 +14,15 @@ import threading
 #Error handling for scikit count < 2 class
 
 root = CTk()
-root.title("ML Data Sorter - predicts new data information")
+root.title("ML EasyData Classifier")
 root.geometry("1250x600") #w h
-
 selected_path = {'file': None}
 
-def fuct():
-    pass
 
-def choose_and_load():   ## SELECT feature_column & target_column FROM LOADED df COLUMNS
-    file_path = filedialog.askopenfilename(
-        title='Select an excel type database file',
-        filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")]
-    )
-    if file_path:
-        df = utils.load_excel(file_path)
-        print(df.head())
-        selected_path['file'] = file_path
-        loaded_columns = df.columns
-        print(loaded_columns)
-
-        feature_attr_dropdown.configure(values=list(df.columns), dropdown_fg_color='lime green', fg_color='forest green')
-        feature_attr_dropdown.set('-- Select Feature column --')
-
-        target_attr_dropdown.configure(values=list(df.columns), dropdown_fg_color='lime green', fg_color='forest green')
-        target_attr_dropdown.set('-- Select Target column --')
-
-        return df
-    else:
-        print('No file selected')
-        return None
-
-def choose_and_load_threaded():
-    def worker():
-        df = None
-        root.after(0, lambda: load_button.configure(text='Loading ⌛..', state='disabled'))
-        try:
-            df = choose_and_load()
-            if df is not None:
-                print(f'File loaded with {len(df)} rows.')
-                root.after(0, lambda: load_button.configure(text='Loaded ✅', state='normal'))
-            else:
-                root.after(0, lambda: load_button.configure(text='Load dataset', state='normal'))
-        except Exception as e:
-            root.after(0, lambda: (CTkMessagebox(title='Error', message=str(e), icon='cancel'),
-                                   load_button.configure(text='Dataset not loaded', state='normal'))) 
-    threading.Thread(target=worker, daemon=True).start()
-
+def clear_treeview():
+    for item in tree.get_children():
+        tree.delete(item)    
+    print('Cleared treeview.')
 
 def get_input():
     raw = textbox.get("1.0", "end-1c")
@@ -101,10 +63,63 @@ def start_model_action():
         CTkMessagebox(title='Error', message=msg, icon='cancel')
 
 
-def clear_treeview():
-    for item in tree.get_children():
-        tree.delete(item)    
-    print('Cleared treeview.')
+def run_asynk(func, btn:CTkButton, start_text:str, done_text:str):
+    def worker():
+        root.after(0, lambda: btn.configure(text=start_text, state='disabled'))
+        func()
+        root.after(0, lambda: btn.configure(text=done_text, state='normal'))
+    threading.Thread(target=worker, daemon=True).start()
+
+
+def choose_and_load():
+    file_path = filedialog.askopenfilename(
+        title='Select an excel type database file',
+        filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")]
+    )
+    if file_path:
+        df = utils.load_excel(file_path)
+        print(df.head())
+        selected_path['file'] = file_path
+        loaded_columns = df.columns
+        print(loaded_columns)
+
+        feature_attr_dropdown.configure(values=list(df.columns), dropdown_fg_color='lime green', fg_color='forest green')
+        feature_attr_dropdown.set('-- Select Feature column --')
+
+        target_attr_dropdown.configure(values=list(df.columns), dropdown_fg_color='lime green', fg_color='forest green')
+        target_attr_dropdown.set('-- Select Target column --')
+
+        return df
+    else:
+        print('No file selected')
+        return None
+
+
+def start_model_action():
+    if not selected_path['file']:
+        print('No file selected.')
+        return
+    
+    feat = feature_attr_dropdown.get()
+    targ = target_attr_dropdown.get()
+    if feat.startswith('--') or targ.startswith('--'):
+        on_dropdown_change()
+        return
+    items = get_input()
+    if not items:
+        return
+    
+    try:
+        predict_output = utils.export_data(dataset=ml.run_model_1target(selected_path['file'], 
+        feature_column=feat, 
+        target_column_1=targ,
+        new_products=get_input()))
+
+        for _, row in predict_output.iterrows():
+            tree.insert('', 'end', values=row.tolist())
+    except Exception as e:
+        msg = class_error(e)
+        CTkMessagebox(title='Error', message=msg, icon='cancel')
 
 
 #Warnings
@@ -127,7 +142,7 @@ def class_error(err: Exception) -> str:
 
 
 def start_widgets():   ## POPULATE dropdown for Feature and Target attributes
-    global textbox, feature_attr_dropdown, target_attr_dropdown, tree, dropdown_label, load_button
+    global textbox, feature_attr_dropdown, target_attr_dropdown, tree, dropdown_label, load_button, start_button
     buttons_frame = CTkFrame(root)          #For buttons - control
     buttons_frame.grid(row=1, column=2, pady=10, padx=10)
 
@@ -140,11 +155,11 @@ def start_widgets():   ## POPULATE dropdown for Feature and Target attributes
     options_frame = CTkFrame(root)          #For dropdowns - attributes
     options_frame.grid(row=2, column=0, padx=10)
 
-    load_button = CTkButton(buttons_frame, text='Load dataset', command=choose_and_load_threaded)
+    load_button = CTkButton(buttons_frame, text='Load dataset', command=lambda: run_asynk(func=choose_and_load, btn=load_button, start_text='Loading ⌛..', done_text='Load dataset'))
     load_button.grid(row=1, column=1, pady=10, padx=10)
 
-    start_model = CTkButton(buttons_frame, text='Start', command=start_model_action)
-    start_model.grid(row=2, column=1, pady=10, padx=10)
+    start_button = CTkButton(buttons_frame, text='Start', command=lambda: run_asynk(func=start_model_action, btn=start_button, start_text='Analysing ⌛..', done_text='Start'))
+    start_button.grid(row=2, column=1, pady=10, padx=10)
 
     clear_button = CTkButton(buttons_frame, text='Clear output', command=clear_treeview, fg_color='firebrick3')
     clear_button.grid(row=3, column=1, pady=(10, 0))

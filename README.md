@@ -5,9 +5,10 @@ A simple **machine learning + GUI** tool for predicting **1 Field** based on a E
 Basic steps: Load the excel containing 2 columns (Feature column, Target column) Fill in the input area with Feature - column type information Hit Start and the model will predict what Target - column type information your input will have.
 
 ## Update:
-Checks for dropdowns and label indicators
-
-Error handling for scikit count < 2 class
+- Made a single threaded func to wrap load and model_action #8/28/2025
+- Check for dropdown #8/22/2025
+- Labels for textbox, dropdowns
+- Error handling for scikit count < 2 class #8/21/2025
 
 ## Features
 

@@ -22,12 +22,16 @@ def run_model_1target(path, feature_column, target_column_1, new_products: list)
     tg1_df = df.dropna(subset=[target_column_1]).copy()
 
     #    Split the known labeled data into train/test to quickly check model quality.
+    y_all = tg1_df[target_column_1].astype(str)
+    counts = y_all.value_counts()
+    use_stratify = counts.min() >= 2  # only stratify if safe
+
     Xc_train, Xc_test, yc_train, yc_test = train_test_split(
-        tg1_df[feature_column],                     # input text (Feature)
-        tg1_df[target_column_1].astype(str),     # target label (Target)
-        test_size=0.2,                      # 20% of data held out for testing
-        random_state=42,                    # makes results reproducible
-        stratify=tg1_df[target_column_1].astype(str)  # keep class balance in split
+        tg1_df[feature_column],
+        y_all,
+        test_size=0.2,
+        random_state=42,
+        stratify=y_all if use_stratify else None
     )
 
     #    Build a tiny pipeline: TF-IDF (turn words into numbers) + Logistic Regression (classifier).
