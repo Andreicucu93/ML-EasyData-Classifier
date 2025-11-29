@@ -5,6 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.metrics import classification_report, accuracy_score
+from sklearn.svm import LinearSVC
 
 
 def run_model_1target(path, feature_column, target_column_1, new_products: list):
@@ -37,15 +38,14 @@ def run_model_1target(path, feature_column, target_column_1, new_products: list)
     #    Build a tiny pipeline: TF-IDF (turn words into numbers) + Logistic Regression (classifier).
     target_1 = make_pipeline(
         TfidfVectorizer(
-            ngram_range=(1, 2),   # use single words and 2-word phrases (bigrams)
+            ngram_range=(1, 2),   # unigrams + bigrams
             lowercase=True,
-            min_df=2              # ignore words that appear only once (reduces noise)
+            min_df=2,             # ignore very rare tokens
+            max_features=50000    # cap vocabulary size to avoid feature explosion
         ),
-        LogisticRegression(
-            max_iter=1000,        # allow enough iterations to converge
-            class_weight="balanced"  # help with rare categories
-        )
+        LinearSVC()               # sparse-friendly linear classifier
     )
+
 
     #    Train on training data.
     target_1.fit(Xc_train, yc_train)
